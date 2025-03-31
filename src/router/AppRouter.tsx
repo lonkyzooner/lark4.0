@@ -1,8 +1,6 @@
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import App from '../App';
-import UniHikerApp from '../UniHikerApp';
-import { isRunningOnUniHiker } from '../utils/deviceDetection';
 import ProtectedRoute from '../auth/ProtectedRoute';
 import SubscriptionPage from '../pages/SubscriptionPage';
 import StripePricingPage from '../pages/StripePricingPage';
@@ -29,22 +27,16 @@ interface AppProps {
 
 // Main router component
 export const AppRouter: React.FC = () => {
-  const isUniHiker = isRunningOnUniHiker();
   const { isAuthenticated } = useStripeAuth();
   const isDevelopment = process.env.NODE_ENV !== 'production';
   
-  // Check for URL parameter to force UniHiker mode
-  const urlParams = new URLSearchParams(window.location.search);
-  const forceUniHiker = urlParams.get('unihiker') === 'true';
   // Temporarily use development authentication by default
   // TODO: Replace with proper authentication once payment integration is complete
+  const urlParams = new URLSearchParams(window.location.search);
   const skipAuth = urlParams.get('skipAuth') !== 'false'; // Default to true unless explicitly set to false
   
-  // Determine which app version to render
-  // Use type assertion to tell TypeScript these components accept AppProps
-  const AppComponent = (isUniHiker || forceUniHiker) ? 
-    (UniHikerApp as React.ComponentType<AppProps>) : 
-    (App as React.ComponentType<AppProps>);
+  // Use App component for all cases
+  const AppComponent = App as React.ComponentType<AppProps>;
     
   // Create a development version of ProtectedRoute that doesn't require authentication
   const DevProtectedRoute: React.FC<{children: React.ReactNode}> = ({ children }) => {
