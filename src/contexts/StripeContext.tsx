@@ -57,7 +57,9 @@ export const StripeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setIsLoading(true);
       
       // For development/demo mode
-      if (process.env.NODE_ENV !== 'production') {
+      // Always use the demo mode for now since we're not in production
+      // if (process.env.NODE_ENV !== 'production') {
+      {
         // Simulate successful checkout
         console.log('[Stripe] Creating demo checkout session for:', priceId);
         
@@ -74,6 +76,7 @@ export const StripeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         localStorage.setItem('lark_subscription_tier', tier);
         
         // Redirect to success URL
+        console.log('[Stripe] Redirecting to:', successUrl);
         window.location.href = successUrl;
         return;
       }
@@ -93,11 +96,14 @@ export const StripeProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       // Redirect to Checkout
       const stripe = await stripePromise;
-      if (stripe) {
-        const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
-        if (error) {
-          console.error('[Stripe] Error redirecting to checkout:', error);
-        }
+      if (!stripe) {
+        console.error('[Stripe] Stripe object is null');
+        return;
+      }
+      
+      const { error } = await stripe.redirectToCheckout({ sessionId: session.id });
+      if (error) {
+        console.error('[Stripe] Error redirecting to checkout:', error);
       }
     } catch (error) {
       console.error('[Stripe] Error creating checkout session:', error);

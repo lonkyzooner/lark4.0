@@ -7,6 +7,7 @@ import StripePricingPage from '../pages/StripePricingPage';
 import LandingPage from '../pages/LandingPage';
 import AccountPage from '../pages/AccountPage';
 import StripeLoginPage from '../pages/StripeLoginPage';
+import DashboardPage from '../pages/DashboardPage';
 import { useStripeAuth } from '../auth/StripeAuthProvider';
 
 
@@ -57,7 +58,7 @@ export const AppRouter: React.FC = () => {
         <Route path="/dashboard" element={
           <RouteGuard>
             <AuthenticatedLayout>
-              <AppComponent />
+              <DashboardPage />
             </AuthenticatedLayout>
           </RouteGuard>
         } />
