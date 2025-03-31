@@ -1,16 +1,7 @@
-// Using dynamic import for idb to fix Vercel build issues
-import { type DBSchema } from 'idb/with-async-ittr';
-
-// We'll use dynamic import for openDB to avoid Rollup resolution issues
-let openDB: any;
-
-async function getOpenDB() {
-  if (!openDB) {
-    const idb = await import('idb/with-async-ittr');
-    openDB = idb.openDB;
-  }
-  return openDB;
-}
+/**
+ * Simple localStorage-based chat storage implementation
+ * This replaces the IndexedDB implementation to avoid Vercel build issues
+ */
 
 interface ChatMessage {
   role: 'user' | 'assistant';
@@ -18,53 +9,51 @@ interface ChatMessage {
   timestamp: number;
 }
 
-interface ChatDBSchema extends DBSchema {
-  messages: {
-    key: number;
-    value: ChatMessage;
-    indexes: { 'by-timestamp': number };
-  };
-  'offline-queue': {
-    key: number;
-    value: {
-      message: string;
-      timestamp: number;
-    };
-  };
+interface OfflineQueueItem {
+  message: string;
+  timestamp: number;
 }
 
-const DB_NAME = 'lark-chat-db';
-const DB_VERSION = 1;
+// Storage keys
+const MESSAGES_KEY = 'lark-chat-messages';
+const OFFLINE_QUEUE_KEY = 'lark-chat-offline-queue';
 
-export const initChatDB = async () => {
-  const openDBFunc = await getOpenDB();
-  // Use type assertion to avoid TypeScript error with generic parameter
-  return openDBFunc(DB_NAME, DB_VERSION, {
-    upgrade(db: any) {
-      const messageStore = db.createObjectStore('messages', {
-        keyPath: 'timestamp'
-      });
-      messageStore.createIndex('by-timestamp', 'timestamp');
-      
-      db.createObjectStore('offline-queue', {
-        keyPath: 'timestamp'
-      });
-    },
-  });
-};
+// Helper function to safely parse JSON from localStorage
+function safeJSONParse<T>(key: string, defaultValue: T): T {
+  try {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) as T : defaultValue;
+  } catch (error) {
+    console.error(`Error parsing data from localStorage key ${key}:`, error);
+    return defaultValue;
+  }
+}
 
-export const saveMessage = async (message: ChatMessage) => {
+// Helper function to safely store JSON in localStorage
+function safeJSONStore<T>(key: string, data: T): boolean {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+    return true;
+  } catch (error) {
+    console.error(`Error storing data in localStorage key ${key}:`, error);
+    return false;
+  }
+}
+
+export const saveMessage = async (message: ChatMessage): Promise<boolean> => {
   if (!message.role || !message.content || !message.timestamp) {
     console.error('Invalid message structure:', message);
     throw new Error('Invalid message structure. Ensure role, content, and timestamp are provided.');
   }
   try {
-    const db = await initChatDB();
-    if (db) {
-      await db.put('messages', message);
-      return true;
-    }
-    return false;
+    // Get existing messages
+    const messages = safeJSONParse<ChatMessage[]>(MESSAGES_KEY, []);
+    
+    // Add new message
+    messages.push(message);
+    
+    // Save back to localStorage
+    return safeJSONStore(MESSAGES_KEY, messages);
   } catch (error) {
     console.error('Error saving message:', error);
     // Don't throw, just return false to indicate failure
@@ -74,12 +63,14 @@ export const saveMessage = async (message: ChatMessage) => {
 
 export const getMessages = async (limit = 100): Promise<ChatMessage[]> => {
   try {
-    const db = await initChatDB();
-    if (db) {
-      const messages = await db.getAllFromIndex('messages', 'by-timestamp');
-      return messages.slice(-limit);
-    }
-    return [];
+    // Get all messages from localStorage
+    const messages = safeJSONParse<ChatMessage[]>(MESSAGES_KEY, []);
+    
+    // Sort by timestamp (just to be safe)
+    messages.sort((a, b) => a.timestamp - b.timestamp);
+    
+    // Return only the most recent messages up to the limit
+    return messages.slice(-limit);
   } catch (error) {
     console.error('Error retrieving messages:', error);
     // Return empty array instead of throwing
@@ -87,17 +78,24 @@ export const getMessages = async (limit = 100): Promise<ChatMessage[]> => {
   }
 };
 
-export const queueOfflineMessage = async (message: string) => {
+export const queueOfflineMessage = async (message: string): Promise<void> => {
   if (!message) {
     throw new Error('Message cannot be empty.');
   }
   try {
-    const db = await initChatDB();
-    if (db) {
-      await db.add('offline-queue', {
-        message,
-        timestamp: Date.now()
-      });
+    // Get existing queue
+    const queue = safeJSONParse<OfflineQueueItem[]>(OFFLINE_QUEUE_KEY, []);
+    
+    // Add new message to queue
+    queue.push({
+      message,
+      timestamp: Date.now()
+    });
+    
+    // Save back to localStorage
+    const saved = safeJSONStore(OFFLINE_QUEUE_KEY, queue);
+    if (!saved) {
+      throw new Error('Failed to store offline message in localStorage');
     }
   } catch (error) {
     console.error('Error queuing offline message:', error);
@@ -105,17 +103,10 @@ export const queueOfflineMessage = async (message: string) => {
   }
 };
 
-export const getOfflineQueue = async () => {
-  const db = await initChatDB();
-  if (db) {
-    return db.getAll('offline-queue');
-  }
-  return [];
+export const getOfflineQueue = async (): Promise<OfflineQueueItem[]> => {
+  return safeJSONParse<OfflineQueueItem[]>(OFFLINE_QUEUE_KEY, []);
 };
 
-export const clearOfflineQueue = async () => {
-  const db = await initChatDB();
-  if (db) {
-    await db.clear('offline-queue');
-  }
+export const clearOfflineQueue = async (): Promise<void> => {
+  safeJSONStore(OFFLINE_QUEUE_KEY, []);
 };

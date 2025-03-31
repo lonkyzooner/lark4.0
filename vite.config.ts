@@ -29,14 +29,9 @@ export default defineConfig({
       external: [],
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom', 'react-router-dom'],
-          database: ['idb', 'idb/with-async-ittr'],
+          vendor: ['react', 'react-dom', 'react-router-dom']
         }
       }
-    },
-    // Ensure proper handling of dynamic imports
-    dynamicImportVarsOptions: {
-      warnOnError: true,
-    },
+    }
   }
 });

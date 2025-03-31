@@ -27,6 +27,17 @@
     "VITE_LIVEKIT_URL": "wss://lark-za4hpayr.livekit.cloud",
     "VITE_LIVEKIT_API_KEY": "APIriVQTTMAvLQ4",
     "VITE_LIVEKIT_API_SECRET": "fleSOaoOdQ0v5fOatkISxYqvNygclQAeSilRMZ1kLbwB",
-    "VITE_APP_VERSION": "1.0.1"
-  }
+    "VITE_APP_VERSION": "1.0.1",
+    "NODE_ENV": "production"
+  },
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist",
+        "zeroConfig": true
+      }
+    }
+  ]
 }
