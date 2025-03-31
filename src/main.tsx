@@ -6,7 +6,6 @@ import { StripeProvider } from './contexts/StripeContext'
 import AppRouter from './router/AppRouter'
 import './index.css'
 import './styles/globals.css'
-import './styles/unihiker.css'
 
 // Check for development mode
 const isDevelopment = import.meta.env.DEV;
