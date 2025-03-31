@@ -1,4 +1,6 @@
-import { openDB, DBSchema } from 'idb';
+import * as idbModule from 'idb';
+const { openDB } = idbModule;
+type DBSchema = idbModule.DBSchema;
 
 interface ChatMessage {
   role: 'user' | 'assistant';

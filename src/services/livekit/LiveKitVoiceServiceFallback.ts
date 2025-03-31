@@ -1,7 +1,7 @@
 import { BehaviorSubject, Subject } from 'rxjs';
 import { Room, RoomEvent, ConnectionState } from 'livekit-client';
 import { generateUserToken } from './tokenService';
-import { isRunningOnUniHiker } from '../../utils/deviceDetection';
+import { isMobileDevice } from '../../utils/deviceDetection';
 
 // Define synthesis state type
 export type SynthesisState = 'idle' | 'synthesizing' | 'speaking' | 'error';
@@ -112,8 +112,8 @@ class LiveKitVoiceServiceFallback {
         // No labels means permission not granted yet
         this.micPermission.next('prompt');
         
-        // For UniHiker, default to native TTS to avoid permission prompts
-        if (isRunningOnUniHiker()) {
+        // For mobile devices, default to native TTS to avoid permission prompts
+        if (isMobileDevice()) {
           this.useNativeTTS = true;
         }
       }
@@ -134,9 +134,9 @@ class LiveKitVoiceServiceFallback {
    */
   public async requestMicrophonePermission(): Promise<boolean> {
     try {
-      // If we're on UniHiker, don't even try to request mic permission
+      // If we're on a mobile device, don't try to request mic permission
       // Just use the fallback TTS
-      if (isRunningOnUniHiker()) {
+      if (isMobileDevice()) {
         this.useNativeTTS = true;
         this.micPermission.next('denied');
         return false;
