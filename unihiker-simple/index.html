@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARK UniHiker Voice Interface</title>
+    <style>
+        :root {
+            --law-enforcement-blue: #003087;
+            --active-green: #00C853;
+            --listening-yellow: #FFD600;
+            --processing-purple: #7B1FA2;
+            --error-red: #D50000;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #001428 0%, #003087 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .unihiker-container {
+            width: 240px;
+            height: 320px;
+            margin: 20px auto;
+            border: 8px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .status-bar {
+            height: 24px;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 10px;
+        }
+        
+        .battery-indicator {
+            display: flex;
+            align-items: center;
+        }
+        
+        .battery-icon {
+            width: 14px;
+            height: 8px;
+            border: 1px solid white;
+            border-radius: 2px;
+            position: relative;
+            margin-right: 4px;
+        }
+        
+        .battery-icon:after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            width: 8px;
+            height: 4px;
+            background-color: #4CAF50;
+        }
+        
+        .mic-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--active-green);
+            margin-right: 4px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: calc(100% - 24px);
+            position: relative;
+        }
+        
+        .assistant-state {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .state-indicator {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+        
+        .idle-state {
+            border: 3px solid var(--law-enforcement-blue);
+            animation: pulse 2s infinite;
+        }
+        
+        .listening-state {
+            border: 3px solid var(--active-green);
+            animation: expand 1.5s infinite;
+            display: none;
+        }
+        
+        .processing-state {
+            border: 3px solid var(--listening-yellow);
+            animation: spin 1s infinite linear;
+            display: none;
+        }
+        
+        .responding-state {
+            border: 3px solid var(--processing-purple);
+            animation: wave 1.5s infinite;
+            display: none;
+        }
+        
+        .error-state {
+            border: 3px solid var(--error-red);
+            animation: shake 0.5s infinite;
+            display: none;
+        }
+        
+        .lark-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .status-text {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            height: 40px;
+        }
+        
+        .command-history {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 10px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        
+        .command-entry {
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-command {
+            color: #90CAF9;
+        }
+        
+        .lark-response {
+            color: #B39DDB;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: var(--law-enforcement-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #004db3;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+        
+        @keyframes expand {
+            0% { transform: scale(0.9); opacity: 0.6; }
+            50% { transform: scale(1.1); opacity: 1; }
+            100% { transform: scale(0.9); opacity: 0.6; }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes wave {
+            0% { transform: scale(1); opacity: 0.8; }
+            25% { transform: scale(1.05) rotate(5deg); opacity: 1; }
+            50% { transform: scale(1); opacity: 0.8; }
+            75% { transform: scale(1.05) rotate(-5deg); opacity: 1; }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(0); }
+            75% { transform: translateX(5px); }
+            100% { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-top: 20px;">LARK for UniHiker M10</h1>
+    <p style="text-align: center;">Voice-First Interface Demo</p>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <span style="font-size: 14px; color: #ccc;">Say "Hey LARK" to activate</span>
+    </div>
+    
+    <div class="unihiker-container">
+        <div class="status-bar">
+            <div>LARK v1.0</div>
+            <div class="battery-indicator">
+                <div class="mic-status"></div>
+                <span>Mic</span>
+                <div class="battery-icon"></div>
+                <span>85%</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="assistant-state">
+                <div class="state-indicator idle-state"></div>
+                <div class="lark-logo">LARK</div>
+            </div>
+            
+            <div class="status-text">
+                Ready. Say "Hey LARK" to activate.
+            </div>
+            
+            <div class="command-history">
+                <div class="command-entry">
+                    <div class="user-command">Hey LARK, read me my Miranda rights</div>
+                    <div class="lark-response">Reading Miranda rights...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls" style="text-align: center;">
+        <button id="simulateWakeWord">Simulate "Hey LARK"</button>
+        <button id="simulateMiranda">Miranda Rights</button>
+        <button id="simulateStatute">Statute Lookup</button>
+        <button id="simulateError">Simulate Error</button>
+    </div>
+    
+    <script>
+        // State management
+        const states = {
+            IDLE: 'idle',
+            LISTENING: 'listening',
+            PROCESSING: 'processing',
+            RESPONDING: 'responding',
+            ERROR: 'error'
+        };
+        
+        let currentState = states.IDLE;
+        
+        // DOM elements
+        const statusText = document.querySelector('.status-text');
+        const commandHistory = document.querySelector('.command-history');
+        const micStatus = document.querySelector('.mic-status');
+        
+        // Button elements
+        const wakeWordButton = document.getElementById('simulateWakeWord');
+        const mirandaButton = document.getElementById('simulateMiranda');
+        const statuteButton = document.getElementById('simulateStatute');
+        const errorButton = document.getElementById('simulateError');
+        
+        // Set assistant state
+        function setAssistantState(state) {
+            // Hide all state indicators
+            document.querySelectorAll('.state-indicator').forEach(el => {
+                el.style.display = 'none';
+            });
+            
+            // Show the current state indicator
+            document.querySelector(`.${state}-state`).style.display = 'block';
+            currentState = state;
+            
+            // Update status text based on state
+            switch(state) {
+                case states.IDLE:
+                    statusText.textContent = 'Ready. Say "Hey LARK" to activate.';
+                    break;
+                case states.LISTENING:
+                    statusText.textContent = 'Listening...';
+                    break;
+                case states.PROCESSING:
+                    statusText.textContent = 'Processing...';
+                    break;
+                case states.RESPONDING:
+                    statusText.textContent = 'Responding...';
+                    break;
+                case states.ERROR:
+                    statusText.textContent = 'Error occurred. Please try again.';
+                    break;
+            }
+        }
+        
+        // Add command to history
+        function addCommandToHistory(userCommand, larkResponse) {
+            const entry = document.createElement('div');
+            entry.className = 'command-entry';
+            
+            const userCommandEl = document.createElement('div');
+            userCommandEl.className = 'user-command';
+            userCommandEl.textContent = userCommand;
+            
+            const larkResponseEl = document.createElement('div');
+            larkResponseEl.className = 'lark-response';
+            larkResponseEl.textContent = larkResponse;
+            
+            entry.appendChild(userCommandEl);
+            entry.appendChild(larkResponseEl);
+            
+            commandHistory.appendChild(entry);
+            commandHistory.scrollTop = commandHistory.scrollHeight;
+        }
+        
+        // Simulate wake word detection
+        let wakeWordTimeout;
+        wakeWordButton.addEventListener('click', () => {
+            if (currentState === states.IDLE) {
+                setAssistantState(states.LISTENING);
+                
+                // Simulate listening for 3 seconds
+                clearTimeout(wakeWordTimeout);
+                wakeWordTimeout = setTimeout(() => {
+                    setAssistantState(states.IDLE);
+                }, 3000);
+            }
+        });
+        
+        // Simulate Miranda rights command
+        mirandaButton.addEventListener('click', () => {
+            setAssistantState(states.PROCESSING);
+            
+            setTimeout(() => {
+                setAssistantState(states.RESPONDING);
+                addCommandToHistory('Hey LARK, read me my Miranda rights', 'You have the right to remain silent. Anything you say can and will be used against you in a court of law. You have the right to an attorney. If you cannot afford an attorney, one will be provided for you.');
+                
+                // Use the browser's speech synthesis API
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance('You have the right to remain silent. Anything you say can and will be used against you in a court of law. You have the right to an attorney. If you cannot afford an attorney, one will be provided for you.');
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1;
+                    window.speechSynthesis.speak(utterance);
+                    
+                    utterance.onend = () => {
+                        setAssistantState(states.IDLE);
+                    };
+                } else {
+                    setTimeout(() => {
+                        setAssistantState(states.IDLE);
+                    }, 5000);
+                }
+            }, 1500);
+        });
+        
+        // Simulate statute lookup
+        statuteButton.addEventListener('click', () => {
+            setAssistantState(states.PROCESSING);
+            
+            setTimeout(() => {
+                setAssistantState(states.RESPONDING);
+                addCommandToHistory('Hey LARK, look up Louisiana statute 14:67', 'Louisiana Revised Statute 14:67 covers theft. Theft is the misappropriation or taking of anything of value which belongs to another, either without the consent of the other to the misappropriation or taking, or by means of fraudulent conduct, practices, or representations.');
+                
+                // Use the browser's speech synthesis API
+                if ('speechSynthesis' in window) {
+                    const utterance = new SpeechSynthesisUtterance('Louisiana Revised Statute 14:67 covers theft. Theft is the misappropriation or taking of anything of value which belongs to another, either without the consent of the other to the misappropriation or taking, or by means of fraudulent conduct, practices, or representations.');
+                    utterance.rate = 0.9;
+                    utterance.pitch = 1;
+                    window.speechSynthesis.speak(utterance);
+                    
+                    utterance.onend = () => {
+                        setAssistantState(states.IDLE);
+                    };
+                } else {
+                    setTimeout(() => {
+                        setAssistantState(states.IDLE);
+                    }, 5000);
+                }
+            }, 1500);
+        });
+        
+        // Simulate error
+        errorButton.addEventListener('click', () => {
+            setAssistantState(states.ERROR);
+            addCommandToHistory('Hey LARK, perform an impossible task', 'I encountered an error processing that request. Please try again.');
+            
+            setTimeout(() => {
+                setAssistantState(states.IDLE);
+            }, 3000);
+        });
+        
+        // Check for microphone permission
+        function checkMicrophonePermission() {
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                navigator.mediaDevices.getUserMedia({ audio: true })
+                    .then(stream => {
+                        // Permission granted
+                        micStatus.style.backgroundColor = 'var(--active-green)';
+                        // Stop the stream immediately - we just needed to check permission
+                        stream.getTracks().forEach(track => track.stop());
+                    })
+                    .catch(err => {
+                        // Permission denied
+                        micStatus.style.backgroundColor = 'var(--error-red)';
+                        console.log('Microphone permission denied:', err);
+                    });
+            } else {
+                // API not supported
+                micStatus.style.backgroundColor = 'var(--error-red)';
+            }
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkMicrophonePermission();
+            setAssistantState(states.IDLE);
+            
+            // Clear the command history
+            commandHistory.innerHTML = '';
+            
+            // Add initial welcome message
+            addCommandToHistory('', 'Welcome to LARK. Say "Hey LARK" to activate.');
+        });
+    </script>
+</body>
+</html>

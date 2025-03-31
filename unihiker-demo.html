@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LARK UniHiker Voice Interface Demo</title>
+    <style>
+        :root {
+            --law-enforcement-blue: #003087;
+            --active-green: #00C853;
+            --listening-yellow: #FFD600;
+            --processing-purple: #7B1FA2;
+            --error-red: #D50000;
+        }
+        
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #001428 0%, #003087 100%);
+            color: white;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .unihiker-container {
+            width: 240px;
+            height: 320px;
+            margin: 20px auto;
+            border: 8px solid #333;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        }
+        
+        .status-bar {
+            height: 24px;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 8px;
+            font-size: 10px;
+        }
+        
+        .battery-indicator {
+            display: flex;
+            align-items: center;
+        }
+        
+        .battery-icon {
+            width: 14px;
+            height: 8px;
+            border: 1px solid white;
+            border-radius: 2px;
+            position: relative;
+            margin-right: 4px;
+        }
+        
+        .battery-icon:after {
+            content: '';
+            position: absolute;
+            top: 1px;
+            left: 1px;
+            width: 8px;
+            height: 4px;
+            background-color: #4CAF50;
+        }
+        
+        .mic-status {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--active-green);
+            margin-right: 4px;
+        }
+        
+        .main-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: calc(100% - 24px);
+            position: relative;
+        }
+        
+        .assistant-state {
+            position: relative;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .state-indicator {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+        }
+        
+        .idle-state {
+            border: 3px solid var(--law-enforcement-blue);
+            animation: pulse 2s infinite;
+        }
+        
+        .listening-state {
+            border: 3px solid var(--active-green);
+            animation: expand 1.5s infinite;
+            display: none;
+        }
+        
+        .processing-state {
+            border: 3px solid var(--listening-yellow);
+            animation: spin 1s infinite linear;
+            display: none;
+        }
+        
+        .responding-state {
+            border: 3px solid var(--processing-purple);
+            animation: wave 1.5s infinite;
+            display: none;
+        }
+        
+        .error-state {
+            border: 3px solid var(--error-red);
+            animation: shake 0.5s infinite;
+            display: none;
+        }
+        
+        .lark-logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+        }
+        
+        .status-text {
+            font-size: 14px;
+            text-align: center;
+            margin-top: 10px;
+            height: 40px;
+        }
+        
+        .command-history {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            background-color: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            padding: 8px;
+            font-size: 10px;
+            max-height: 80px;
+            overflow-y: auto;
+        }
+        
+        .command-entry {
+            margin-bottom: 4px;
+            padding-bottom: 4px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .user-command {
+            color: #90CAF9;
+        }
+        
+        .lark-response {
+            color: #B39DDB;
+        }
+        
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        button {
+            padding: 8px 16px;
+            background-color: var(--law-enforcement-blue);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        
+        button:hover {
+            background-color: #004db3;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(0.95); opacity: 0.7; }
+            50% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0.95); opacity: 0.7; }
+        }
+        
+        @keyframes expand {
+            0% { transform: scale(0.8); opacity: 0.5; }
+            50% { transform: scale(1.1); opacity: 0.8; }
+            100% { transform: scale(0.8); opacity: 0.5; }
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @keyframes wave {
+            0% { transform: scale(0.9) rotate(0deg); }
+            25% { transform: scale(1) rotate(90deg); }
+            50% { transform: scale(0.9) rotate(180deg); }
+            75% { transform: scale(1) rotate(270deg); }
+            100% { transform: scale(0.9) rotate(360deg); }
+        }
+        
+        @keyframes shake {
+            0% { transform: translateX(-2px); }
+            25% { transform: translateX(0px); }
+            50% { transform: translateX(2px); }
+            75% { transform: translateX(0px); }
+            100% { transform: translateX(-2px); }
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align: center; margin-top: 20px;">LARK for UniHiker M10</h1>
+    <p style="text-align: center;">Voice-First Interface Demo</p>
+    <div style="text-align: center; margin-bottom: 20px;">
+        <p style="color: #FFD600;">👇 Click on the device below to simulate saying "Hey LARK" 👇</p>
+        <p style="font-size: 14px; color: #90CAF9;">No microphone permissions needed for this demo</p>
+    </div>
+    
+    <div class="unihiker-container">
+        <div class="status-bar">
+            <div>19:54</div>
+            <div class="battery-indicator">
+                <div class="battery-icon"></div>
+                <span>75%</span>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <div class="mic-status"></div>
+                <span>MIC</span>
+            </div>
+        </div>
+        
+        <div class="main-content">
+            <div class="assistant-state">
+                <div class="state-indicator idle-state"></div>
+                <div class="state-indicator listening-state"></div>
+                <div class="state-indicator processing-state"></div>
+                <div class="state-indicator responding-state"></div>
+                <div class="state-indicator error-state"></div>
+                <div class="lark-logo">LARK</div>
+            </div>
+            
+            <div class="status-text">Say "Hey LARK" to activate</div>
+            
+            <div class="command-history">
+                <div class="command-entry">
+                    <div class="user-command">Hey LARK, read me my Miranda rights</div>
+                    <div class="lark-response">Reading Miranda rights...</div>
+                </div>
+                <div class="command-entry">
+                    <div class="user-command">Hey LARK, look up statute 14:30</div>
+                    <div class="lark-response">Louisiana Statute 14:30 - First degree murder...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls">
+        <button id="idleBtn">Idle State</button>
+        <button id="listenBtn">Listening State</button>
+        <button id="processBtn">Processing State</button>
+        <button id="respondBtn">Responding State</button>
+        <button id="errorBtn">Error State</button>
+    </div>
+    
+    <script>
+        // Demo controls
+        document.getElementById('idleBtn').addEventListener('click', () => {
+            setAssistantState('idle');
+            document.querySelector('.status-text').textContent = 'Say "Hey LARK" to activate';
+        });
+        
+        document.getElementById('listenBtn').addEventListener('click', () => {
+            setAssistantState('listening');
+            document.querySelector('.status-text').textContent = 'Listening...';
+        });
+        
+        document.getElementById('processBtn').addEventListener('click', () => {
+            setAssistantState('processing');
+            document.querySelector('.status-text').textContent = 'Processing command...';
+        });
+        
+        document.getElementById('respondBtn').addEventListener('click', () => {
+            setAssistantState('responding');
+            document.querySelector('.status-text').textContent = 'Responding to your request...';
+        });
+        
+        document.getElementById('errorBtn').addEventListener('click', () => {
+            setAssistantState('error');
+            document.querySelector('.status-text').textContent = 'Error: Please try again';
+        });
+        
+        function setAssistantState(state) {
+            // Hide all states
+            document.querySelector('.idle-state').style.display = 'none';
+            document.querySelector('.listening-state').style.display = 'none';
+            document.querySelector('.processing-state').style.display = 'none';
+            document.querySelector('.responding-state').style.display = 'none';
+            document.querySelector('.error-state').style.display = 'none';
+            
+            // Show selected state
+            document.querySelector(`.${state}-state`).style.display = 'block';
+        }
+        
+        // Simulate wake word detection
+        let wakeWordTimeout;
+        document.addEventListener('click', () => {
+            if (document.querySelector('.idle-state').style.display !== 'none') {
+                setAssistantState('listening');
+                document.querySelector('.status-text').textContent = 'Detected: "Hey LARK"';
+                
+                clearTimeout(wakeWordTimeout);
+                wakeWordTimeout = setTimeout(() => {
+                    setAssistantState('processing');
+                    document.querySelector('.status-text').textContent = 'Processing command...';
+                    
+                    setTimeout(() => {
+                        setAssistantState('responding');
+                        document.querySelector('.status-text').textContent = 'Responding to your request...';
+                        
+                        setTimeout(() => {
+                            setAssistantState('idle');
+                            document.querySelector('.status-text').textContent = 'Say "Hey LARK" to activate';
+                        }, 3000);
+                    }, 2000);
+                }, 2000);
+            }
+        });
+        
+        // Display a message about microphone permissions
+        const micStatus = document.querySelector('.mic-status');
+        micStatus.style.backgroundColor = '#D50000'; // Red color for denied
+        
+        // Add a note about fallback mode
+        const noteDiv = document.createElement('div');
+        noteDiv.style.position = 'absolute';
+        noteDiv.style.bottom = '90px';
+        noteDiv.style.left = '10px';
+        noteDiv.style.right = '10px';
+        noteDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+        noteDiv.style.padding = '4px';
+        noteDiv.style.borderRadius = '4px';
+        noteDiv.style.fontSize = '8px';
+        noteDiv.style.textAlign = 'center';
+        noteDiv.textContent = 'Using TTS fallback mode (no microphone)';
+        document.querySelector('.main-content').appendChild(noteDiv);
+        
+        // Auto-start the demo cycle
+        setTimeout(() => {
+            document.querySelector('.unihiker-container').click();
+        }, 1500);
+    </script>
+</body>
+</html>
